@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Augur Analytics SDK Example</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        line-height: 1.6;
+      }
+      .section {
+        margin: 20px 0;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+      button {
+        padding: 10px 20px;
+        margin: 5px;
+        border: none;
+        border-radius: 4px;
+        background: #007bff;
+        color: white;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      input,
+      textarea {
+        padding: 8px;
+        margin: 5px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        width: 200px;
+      }
+      .log {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 4px;
+        padding: 10px;
+        margin: 10px 0;
+        font-family: monospace;
+        font-size: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Augur Analytics SDK Example</h1>
+    <p>
+      This example demonstrates the core analytics SDK functionality. Open the
+      browser console to see debug logs.
+    </p>
+
+    <div class="section">
+      <h2>Basic Event Tracking</h2>
+      <button id="track-btn">Track Button Click</button>
+      <button id="page-btn">Track Page View</button>
+      <button id="identify-btn">Identify User</button>
+      <button id="reset-btn">Reset User</button>
+    </div>
+
+    <div class="section">
+      <h2>Custom Events</h2>
+      <button id="custom-event-btn">Track Custom Event</button>
+      <button id="timing-btn">Track Timing Event</button>
+      <button id="metric-btn">Track Metric</button>
+    </div>
+
+    <div class="section">
+      <h2>Form Tracking</h2>
+      <form id="demo-form">
+        <input type="text" id="name-input" placeholder="Name" />
+        <input type="email" id="email-input" placeholder="Email" />
+        <textarea id="message-input" placeholder="Message"></textarea>
+        <button type="submit">Submit Form</button>
+      </form>
+    </div>
+
+    <div class="section">
+      <h2>Session Information</h2>
+      <p>Session ID: <span id="session-id">Loading...</span></p>
+      <button id="get-session-btn">Get Session ID</button>
+    </div>
+
+    <div class="section">
+      <h2>Debug Log</h2>
+      <div id="debug-log" class="log"></div>
+      <button id="clear-log-btn">Clear Log</button>
+    </div>
+
+    <script type="module">
+      // Import the analytics SDK
+      import { createAnalytics } from "./packages/core/src/analytics.js";
+
+      // Initialize analytics
+      const analytics = createAnalytics({
+        apiKey: "demo-api-key",
+        endpoint: "http://localhost:8000", // Your Augur backend
+        userId: "demo-user@example.com",
+        debug: true,
+      });
+
+      // Get session ID
+      document.getElementById("session-id").textContent =
+        analytics.getSessionId();
+
+      // Debug logging
+      const debugLog = document.getElementById("debug-log");
+      const originalLog = console.log;
+      console.log = function (...args) {
+        originalLog.apply(console, args);
+        if (args[0] && args[0].includes("[Augur Analytics]")) {
+          debugLog.innerHTML += args.join(" ") + "\n";
+          debugLog.scrollTop = debugLog.scrollHeight;
+        }
+      };
+
+      // Basic event tracking
+      document.getElementById("track-btn").addEventListener("click", () => {
+        analytics.track("button_clicked", {
+          button_id: "track-btn",
+          page: window.location.pathname,
+        });
+      });
+
+      document.getElementById("page-btn").addEventListener("click", () => {
+        analytics.page({
+          path: window.location.pathname,
+          title: document.title,
+        });
+      });
+
+      document.getElementById("identify-btn").addEventListener("click", () => {
+        analytics.identify("demo-user@example.com", {
+          name: "Demo User",
+          plan: "premium",
+          signup_date: "2024-01-01",
+        });
+      });
+
+      document.getElementById("reset-btn").addEventListener("click", () => {
+        analytics.reset();
+        document.getElementById("session-id").textContent =
+          analytics.getSessionId();
+      });
+
+      // Custom events
+      document
+        .getElementById("custom-event-btn")
+        .addEventListener("click", () => {
+          analytics.track("custom_event", {
+            event_type: "demo",
+            timestamp: new Date().toISOString(),
+            custom_property: "demo_value",
+          });
+        });
+
+      document.getElementById("timing-btn").addEventListener("click", () => {
+        const startTime = Date.now();
+        setTimeout(() => {
+          const duration = Date.now() - startTime;
+          analytics.timing(
+            "demo",
+            "button_click_delay",
+            duration,
+            "timing_demo"
+          );
+        }, Math.random() * 1000 + 500);
+      });
+
+      document.getElementById("metric-btn").addEventListener("click", () => {
+        analytics.metric("demo_metric", Math.random() * 100, {
+          metric_type: "random_value",
+          campaign: "demo",
+        });
+      });
+
+      // Form tracking
+      document.getElementById("demo-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        analytics.track("form_submitted", {
+          form_id: "demo-form",
+          form_type: "contact",
+          page: window.location.pathname,
+        });
+      });
+
+      // Session ID
+      document
+        .getElementById("get-session-btn")
+        .addEventListener("click", () => {
+          const sessionId = analytics.getSessionId();
+          document.getElementById("session-id").textContent = sessionId;
+        });
+
+      // Clear log
+      document.getElementById("clear-log-btn").addEventListener("click", () => {
+        debugLog.innerHTML = "";
+      });
+
+      // Auto-track page view on load
+      analytics.page();
+
+      console.log("Augur Analytics SDK example loaded successfully!");
+    </script>
+  </body>
+</html>
