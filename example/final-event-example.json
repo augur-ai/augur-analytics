@@ -1,0 +1,39 @@
+{
+  "session_id": "sess-user@example.com-1704067200000-abc123def",
+  "event_type": "button_clicked",
+  "event_name": "button_clicked",
+  "event_description": "",
+  "properties": {
+    "button_name": "signup_cta",
+    "button_location": "header",
+    "session_id": "sess-user@example.com-1704067200000-abc123def",
+    "user_id": "user@example.com",
+    "timestamp": "2024-01-01T12:00:00.000Z",
+    "device_info": {
+      "browser": {
+        "name": "Chrome",
+        "version": "120.0.6099.109"
+      },
+      "os": {
+        "name": "macOS",
+        "version": "14.2.1"
+      },
+      "device": {
+        "type": "desktop"
+      },
+      "screen": {
+        "width": 1920,
+        "height": 1080,
+        "pixelRatio": 2
+      },
+      "location": {
+        "country": "US",
+        "timezone": "America/New_York",
+        "language": "en-US"
+      },
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+  },
+  "source": "frontend",
+  "feed_id": "feed-123e4567-e89b-12d3-a456-426614174000"
+}

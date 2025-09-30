@@ -14,6 +14,8 @@ export interface AugurConfig {
 
 export interface AugurEvent {
   event: string;
+  eventName?: string; // Optional event name, falls back to event if not provided
+  eventDescription?: string; // Optional event description, defaults to empty string
   properties?: Record<string, any>;
   feedId?: string; // Optional feed ID override for this specific event
 }
@@ -117,9 +119,11 @@ export class AugurAnalytics {
   async trackWithFeed(
     event: string,
     feedId: string,
-    properties?: Record<string, any>
+    properties?: Record<string, any>,
+    eventName?: string,
+    eventDescription?: string
   ): Promise<void> {
-    return this.track(event, properties, feedId);
+    return this.track(event, properties, feedId, eventName, eventDescription);
   }
 
   /**
@@ -128,11 +132,15 @@ export class AugurAnalytics {
   async track(
     event: string,
     properties?: Record<string, any>,
-    feedId?: string
+    feedId?: string,
+    eventName?: string,
+    eventDescription?: string
   ): Promise<void> {
     const deviceInfo = this.getDeviceInfo();
     const eventData: AugurEvent = {
       event,
+      eventName,
+      eventDescription,
       properties: {
         ...properties,
         session_id: this.sessionId,
@@ -274,7 +282,9 @@ export class AugurAnalytics {
   private async sendEvent(eventData: AugurEvent): Promise<void> {
     const payload: any = {
       session_id: this.sessionId,
-      event_name: eventData.event,
+      event_type: eventData.event,
+      event_name: eventData.eventName || eventData.event, // Fallback to event_type if not provided
+      event_description: eventData.eventDescription || "", // Default to empty string if not provided
       properties: eventData.properties,
       source: "frontend",
     };

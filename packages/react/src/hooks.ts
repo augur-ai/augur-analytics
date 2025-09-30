@@ -20,8 +20,20 @@ export function useTrack() {
   const analytics = useAugur();
 
   return useCallback(
-    (event: string, properties?: Record<string, any>) => {
-      return analytics.track(event, properties);
+    (
+      event: string,
+      properties?: Record<string, any>,
+      feedId?: string,
+      eventName?: string,
+      eventDescription?: string
+    ) => {
+      return analytics.track(
+        event,
+        properties,
+        feedId,
+        eventName,
+        eventDescription
+      );
     },
     [analytics]
   );
@@ -192,8 +204,20 @@ export function useTrackWithFeed() {
   const analytics = useAugur();
 
   return useCallback(
-    (event: string, feedId: string, properties?: Record<string, any>) => {
-      return analytics.trackWithFeed(event, feedId, properties);
+    (
+      event: string,
+      feedId: string,
+      properties?: Record<string, any>,
+      eventName?: string,
+      eventDescription?: string
+    ) => {
+      return analytics.trackWithFeed(
+        event,
+        feedId,
+        properties,
+        eventName,
+        eventDescription
+      );
     },
     [analytics]
   );
