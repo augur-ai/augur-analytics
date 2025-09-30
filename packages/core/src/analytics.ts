@@ -295,30 +295,19 @@ export class AugurAnalytics {
       payload.feed_id = feedId;
     }
 
-    // Use Beacon API if available, fallback to fetch
-    if (navigator.sendBeacon) {
-      const success = navigator.sendBeacon(
-        `${this.endpoint}/analytics/events`,
-        JSON.stringify(payload)
-      );
+    // Always send as array of events and use fetch (beacon doesn't support custom headers)
+    const response = await fetch(`${this.endpoint}/analytics/events`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": this.apiKey,
+      },
+      body: JSON.stringify([payload]), // Send as array
+      keepalive: true,
+    });
 
-      if (!success) {
-        throw new Error("Failed to send beacon");
-      }
-    } else {
-      const response = await fetch(`${this.endpoint}/analytics/events`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify(payload),
-        keepalive: true,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
   }
 
