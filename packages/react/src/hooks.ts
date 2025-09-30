@@ -164,6 +164,42 @@ export function useSessionId() {
 }
 
 /**
+ * Hook to get current feed ID
+ */
+export function useFeedId() {
+  const analytics = useAugur();
+  return analytics.getFeedId();
+}
+
+/**
+ * Hook to set feed ID for all future events
+ */
+export function useSetFeedId() {
+  const analytics = useAugur();
+
+  return useCallback(
+    (feedId: string) => {
+      analytics.setFeedId(feedId);
+    },
+    [analytics]
+  );
+}
+
+/**
+ * Hook to track events with feed ID override
+ */
+export function useTrackWithFeed() {
+  const analytics = useAugur();
+
+  return useCallback(
+    (event: string, feedId: string, properties?: Record<string, any>) => {
+      return analytics.trackWithFeed(event, feedId, properties);
+    },
+    [analytics]
+  );
+}
+
+/**
  * Hook to automatically track page views on route changes
  */
 export function usePageTracking() {

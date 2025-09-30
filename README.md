@@ -32,6 +32,7 @@ const analytics = createAnalytics({
   apiKey: "your-augur-api-key",
   endpoint: "https://augur.com",
   userId: "user123@example.com",
+  feedId: "550e8400-e29b-41d4-a716-446655440000", // Optional: specify analytics feed ID
   debug: true,
 });
 
@@ -64,6 +65,7 @@ function App() {
         apiKey: "your-augur-api-key",
         endpoint: "https://augur.com",
         userId: "user123@example.com",
+        feedId: "550e8400-e29b-41d4-a716-446655440000", // Optional: specify analytics feed ID
         debug: true,
       }}
     >
@@ -101,7 +103,9 @@ function SummaryButton() {
 
 ### Methods
 
-- `track(event, properties?)` - Track custom events
+- `track(event, properties?, feedId?)` - Track custom events
+- `trackWithFeed(event, feedId, properties?)` - Track events with specific feed ID
+- `setFeedId(feedId)` - Set feed ID for all future events
 - `page(properties?)` - Track page views
 - `identify(userId, traits?)` - Identify users
 - `alias(newUserId, oldUserId?)` - Alias users
@@ -120,6 +124,7 @@ interface AugurConfig {
   endpoint: string; // Augur API endpoint URL
   userId?: string; // User identifier for session correlation
   sessionId?: string; // Custom session ID (auto-generated if not provided)
+  feedId?: string; // Analytics feed ID (UUID format)
   debug?: boolean; // Enable debug logging (default: false)
 }
 ```
@@ -140,6 +145,9 @@ interface AugurConfig {
 - `useTiming()` - Track timing events
 - `useMetric()` - Track custom metrics
 - `useSessionId()` - Get session ID
+- `useFeedId()` - Get current feed ID
+- `useSetFeedId()` - Set feed ID for all future events
+- `useTrackWithFeed()` - Track events with feed ID override
 
 ### Advanced Hooks
 
@@ -172,9 +180,185 @@ All events automatically include:
 
 The SDK sends events to the following Augur endpoints:
 
-- `POST /api/v1/session-events/events` - Event ingestion
+- `POST /analytics/events` - Event ingestion
 
 All events are stored in the `session_events` table with pg_mooncake columnstore for fast analytics.
+
+## Analytics Feeds
+
+Augur Analytics supports different feeds to organize and categorize your analytics data using UUID-based feed IDs:
+
+### Setting Feed IDs
+
+```typescript
+// Core SDK
+const analytics = createAnalytics({
+  apiKey: "your-api-key",
+  endpoint: "https://augur.com",
+  feedId: "550e8400-e29b-41d4-a716-446655440000", // Specify the feed ID
+});
+
+// React
+<AugurProvider
+  config={{
+    apiKey: "your-api-key",
+    endpoint: "https://augur.com",
+    feedId: "550e8400-e29b-41d4-a716-446655440000", // Specify the feed ID
+  }}
+>
+  <YourApp />
+</AugurProvider>;
+```
+
+### Feed Benefits
+
+- **Data Organization**: Separate analytics by platform or use case
+- **Filtering**: Query and analyze specific feed data
+- **Rate Limiting**: Apply different rate limits per feed
+- **Retention**: Set different data retention policies per feed
+- **Access Control**: Control access to specific feeds
+
+### API Payload Structure
+
+The SDK sends events in the following format:
+
+```json
+{
+  "feed_id": "550e8400-e29b-41d4-a716-446655440000",
+  "session_id": "test_session_123",
+  "event_name": "button_click",
+  "properties": {
+    "button": "summary",
+    "component": "header",
+    "user_id": "user_123"
+  },
+  "source": "frontend"
+}
+```
+
+## Feed Switching
+
+Augur Analytics supports both app-wide feed switching and per-event feed overrides:
+
+### App-wide Feed Switching
+
+Change the feed ID for all future events:
+
+```typescript
+// Core SDK
+const analytics = createAnalytics({
+  apiKey: "your-api-key",
+  endpoint: "https://augur.com",
+  feedId: "550e8400-e29b-41d4-a716-446655440000", // Initial feed
+});
+
+// Switch to a different feed for all future events
+analytics.setFeedId("660e8400-e29b-41d4-a716-446655440001");
+
+// All subsequent events will use the new feed ID
+await analytics.track("user_action", { action: "click" });
+```
+
+```tsx
+// React
+function MyComponent() {
+  const setFeedId = useSetFeedId();
+  const track = useTrack();
+
+  const switchToMobileFeed = () => {
+    setFeedId("660e8400-e29b-41d4-a716-446655440001");
+    track("feed_switched", { new_feed: "mobile" });
+  };
+
+  return <button onClick={switchToMobileFeed}>Switch to Mobile Feed</button>;
+}
+```
+
+### Per-event Feed Overrides
+
+Override the feed ID for specific events:
+
+```typescript
+// Core SDK
+const analytics = createAnalytics({
+  apiKey: "your-api-key",
+  endpoint: "https://augur.com",
+  feedId: "550e8400-e29b-41d4-a716-446655440000", // Default feed
+});
+
+// Track event with specific feed ID override
+await analytics.track(
+  "special_event",
+  { action: "premium_feature" },
+  "660e8400-e29b-41d4-a716-446655440001" // Override feed ID
+);
+
+// Or use the convenience method
+await analytics.trackWithFeed(
+  "special_event",
+  "660e8400-e29b-41d4-a716-446655440001",
+  { action: "premium_feature" }
+);
+```
+
+```tsx
+// React
+function SpecialComponent() {
+  const trackWithFeed = useTrackWithFeed();
+  const track = useTrack();
+
+  const handleSpecialAction = () => {
+    // This event goes to a specific feed
+    trackWithFeed("premium_action", "660e8400-e29b-41d4-a716-446655440001", {
+      feature: "advanced_analytics",
+    });
+
+    // This event goes to the default feed
+    track("regular_action", { feature: "basic_analytics" });
+  };
+
+  return <button onClick={handleSpecialAction}>Special Action</button>;
+}
+```
+
+### Use Cases
+
+**Multi-tenant Applications:**
+
+```typescript
+// Switch feeds based on user organization
+const switchToOrgFeed = (orgId: string) => {
+  const feedId = getFeedIdForOrganization(orgId);
+  analytics.setFeedId(feedId);
+};
+```
+
+**A/B Testing:**
+
+```typescript
+// Send events to different feeds for A/B testing
+const trackExperimentEvent = (variant: string) => {
+  const feedId =
+    variant === "A"
+      ? "550e8400-e29b-41d4-a716-446655440000"
+      : "660e8400-e29b-41d4-a716-446655440001";
+
+  analytics.trackWithFeed("experiment_event", feedId, { variant });
+};
+```
+
+**Feature Flags:**
+
+```typescript
+// Route events based on feature availability
+const trackFeatureUsage = (feature: string) => {
+  const feedId = isFeatureEnabled(feature)
+    ? "enabled-features-feed"
+    : "disabled-features-feed";
+
+  analytics.trackWithFeed("feature_used", feedId, { feature });
+};
+```
 
 ## Bundle Size
 

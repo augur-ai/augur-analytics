@@ -12,6 +12,10 @@ import {
   useComponentTracking,
   useFormTracking,
   useInteractionTracking,
+  useFeedId,
+  useSetFeedId,
+  useTrackWithFeed,
+  useSessionId,
 } from "@augur/analytics-react";
 
 // Example components
@@ -164,6 +168,81 @@ function TrackedComponent() {
   );
 }
 
+function AnalyticsInfo() {
+  const feedId = useFeedId();
+  const sessionId = useSessionId();
+
+  return (
+    <div style={{ padding: "20px", border: "1px solid #blue", margin: "10px" }}>
+      <h3>Analytics Info</h3>
+      <p>
+        <strong>Feed ID:</strong> {feedId || "Not set"}
+      </p>
+      <p>
+        <strong>Session ID:</strong> {sessionId}
+      </p>
+    </div>
+  );
+}
+
+function FeedSwitcher() {
+  const setFeedId = useSetFeedId();
+  const track = useTrack();
+  const feedId = useFeedId();
+
+  const switchToMobileFeed = () => {
+    setFeedId("660e8400-e29b-41d4-a716-446655440001");
+    track("feed_switched", { new_feed: "mobile" });
+  };
+
+  const switchToWebFeed = () => {
+    setFeedId("550e8400-e29b-41d4-a716-446655440000");
+    track("feed_switched", { new_feed: "web" });
+  };
+
+  return (
+    <div
+      style={{ padding: "20px", border: "1px solid #green", margin: "10px" }}
+    >
+      <h3>Feed Switcher</h3>
+      <p>Current Feed: {feedId || "Not set"}</p>
+      <button onClick={switchToWebFeed} style={{ margin: "5px" }}>
+        Switch to Web Feed
+      </button>
+      <button onClick={switchToMobileFeed} style={{ margin: "5px" }}>
+        Switch to Mobile Feed
+      </button>
+    </div>
+  );
+}
+
+function SpecialEventTracker() {
+  const trackWithFeed = useTrackWithFeed();
+  const track = useTrack();
+
+  const handleSpecialAction = () => {
+    // This event goes to a specific feed
+    trackWithFeed("premium_action", "660e8400-e29b-41d4-a716-446655440001", {
+      feature: "advanced_analytics",
+    });
+
+    // This event goes to the default feed
+    track("regular_action", { feature: "basic_analytics" });
+  };
+
+  return (
+    <div
+      style={{ padding: "20px", border: "1px solid #orange", margin: "10px" }}
+    >
+      <h3>Special Event Tracker</h3>
+      <p>This demonstrates per-event feed overrides</p>
+      <button onClick={handleSpecialAction} style={{ padding: "10px 20px" }}>
+        Track Special Action
+      </button>
+    </div>
+  );
+}
+
 function HomePage() {
   usePageTracking(); // Auto-track page views
   const track = useTrack();
@@ -181,6 +260,9 @@ function HomePage() {
       <p>This page demonstrates various tracking capabilities.</p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+        <AnalyticsInfo />
+        <FeedSwitcher />
+        <SpecialEventTracker />
         <SummaryButton />
         <UserProfile />
         <SearchInput />
@@ -202,6 +284,7 @@ function App() {
         apiKey: "demo-api-key",
         endpoint: "http://localhost:8000", // Your Augur backend
         userId: "demo-user@example.com",
+        feedId: "550e8400-e29b-41d4-a716-446655440000", // Specify the analytics feed ID
         debug: true,
       }}
     >

@@ -9,6 +9,7 @@ const analytics = createAnalytics({
   apiKey: "your-augur-api-key",
   endpoint: "https://augur.com",
   userId: "user123@example.com",
+  feedId: "550e8400-e29b-41d4-a716-446655440000", // Specify the analytics feed ID
   debug: true,
 });
 
@@ -71,9 +72,29 @@ analytics.setUserProperties({
 // Example: Reset user data
 analytics.reset();
 
-// Example: Get session ID for debugging
+// Example: Get session ID and feed ID for debugging
 const sessionId = analytics.getSessionId();
+const feedId = analytics.getFeedId();
 console.log("Current session ID:", sessionId);
+console.log("Current feed ID:", feedId);
+
+// Example: Switch feed ID for all future events
+analytics.setFeedId("660e8400-e29b-41d4-a716-446655440001");
+console.log("Switched to new feed ID");
+
+// Example: Track event with specific feed ID override
+await analytics.track(
+  "special_event",
+  { action: "premium_feature" },
+  "770e8400-e29b-41d4-a716-446655440002" // Override feed ID
+);
+
+// Example: Use convenience method for feed-specific tracking
+await analytics.trackWithFeed(
+  "experiment_event",
+  "880e8400-e29b-41d4-a716-446655440003",
+  { variant: "A" }
+);
 
 // Example: Track custom events with error handling
 async function trackCustomEvent(

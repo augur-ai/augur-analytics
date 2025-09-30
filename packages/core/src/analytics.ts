@@ -9,11 +9,13 @@ export interface AugurConfig {
   userId?: string;
   sessionId?: string;
   debug?: boolean;
+  feedId?: string; // Analytics feed ID (UUID format)
 }
 
 export interface AugurEvent {
   event: string;
   properties?: Record<string, any>;
+  feedId?: string; // Optional feed ID override for this specific event
 }
 
 export interface AugurPageEvent {
@@ -34,15 +36,20 @@ export class AugurAnalytics {
   private apiKey: string;
   private endpoint: string;
   private debug: boolean;
+  private feedId?: string;
 
   constructor(config: AugurConfig) {
     this.apiKey = config.apiKey;
     this.endpoint = config.endpoint;
     this.userId = config.userId;
     this.debug = config.debug || false;
+    this.feedId = config.feedId;
     this.sessionId = config.sessionId || this.generateSessionId();
 
-    this.log("Augur Analytics initialized", { sessionId: this.sessionId });
+    this.log("Augur Analytics initialized", {
+      sessionId: this.sessionId,
+      feedId: this.feedId,
+    });
     this.setupAutoInjection();
   }
 
@@ -64,10 +71,40 @@ export class AugurAnalytics {
   }
 
   /**
+   * Get current feed ID
+   */
+  getFeedId(): string | undefined {
+    return this.feedId;
+  }
+
+  /**
+   * Set feed ID for all future events
+   */
+  setFeedId(feedId: string): void {
+    this.feedId = feedId;
+    this.log("Feed ID updated", { feedId: this.feedId });
+  }
+
+  /**
+   * Track an event with a specific feed ID (overrides global feed ID)
+   */
+  async trackWithFeed(
+    event: string,
+    feedId: string,
+    properties?: Record<string, any>
+  ): Promise<void> {
+    return this.track(event, properties, feedId);
+  }
+
+  /**
    * Track a custom event
    */
-  async track(event: string, properties?: Record<string, any>): Promise<void> {
-    const eventData = {
+  async track(
+    event: string,
+    properties?: Record<string, any>,
+    feedId?: string
+  ): Promise<void> {
+    const eventData: AugurEvent = {
       event,
       properties: {
         ...properties,
@@ -76,6 +113,11 @@ export class AugurAnalytics {
         timestamp: new Date().toISOString(),
       },
     };
+
+    // Add feed ID override if provided
+    if (feedId) {
+      eventData.feedId = feedId;
+    }
 
     this.log("Tracking event", eventData);
 
@@ -202,18 +244,23 @@ export class AugurAnalytics {
    * Send event to Augur backend
    */
   private async sendEvent(eventData: AugurEvent): Promise<void> {
-    const payload = {
+    const payload: any = {
       session_id: this.sessionId,
       event_name: eventData.event,
       properties: eventData.properties,
       source: "frontend",
-      timestamp: new Date().toISOString(),
     };
+
+    // Add feed_id - prioritize per-event override, then global feed ID
+    const feedId = eventData.feedId || this.feedId;
+    if (feedId) {
+      payload.feed_id = feedId;
+    }
 
     // Use Beacon API if available, fallback to fetch
     if (navigator.sendBeacon) {
       const success = navigator.sendBeacon(
-        `${this.endpoint}/api/v1/session-events/events`,
+        `${this.endpoint}/analytics/events`,
         JSON.stringify(payload)
       );
 
@@ -221,18 +268,15 @@ export class AugurAnalytics {
         throw new Error("Failed to send beacon");
       }
     } else {
-      const response = await fetch(
-        `${this.endpoint}/api/v1/session-events/events`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${this.apiKey}`,
-          },
-          body: JSON.stringify(payload),
-          keepalive: true,
-        }
-      );
+      const response = await fetch(`${this.endpoint}/analytics/events`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify(payload),
+        keepalive: true,
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -258,7 +302,10 @@ export class AugurAnalytics {
       return originalFetch(input, newInit);
     };
 
-    this.log("Auto-injection setup complete");
+    this.log("Auto-injection setup complete", {
+      sessionId: this.sessionId,
+      feedId: this.feedId,
+    });
   }
 
   /**
