@@ -9,4 +9,5 @@ export type {
   AugurEvent,
   AugurPageEvent,
   AugurIdentifyEvent,
+  DeviceInfo,
 } from "./analytics";

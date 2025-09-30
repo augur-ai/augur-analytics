@@ -30,6 +30,32 @@ export interface AugurIdentifyEvent {
   traits?: Record<string, any>;
 }
 
+export interface DeviceInfo {
+  browser: {
+    name: string;
+    version: string;
+  };
+  os: {
+    name: string;
+    version: string;
+  };
+  device: {
+    type: "desktop" | "mobile" | "tablet";
+    model?: string;
+  };
+  screen: {
+    width: number;
+    height: number;
+    pixelRatio: number;
+  };
+  location: {
+    country?: string;
+    timezone: string;
+    language: string;
+  };
+  userAgent: string;
+}
+
 export class AugurAnalytics {
   private sessionId: string;
   private userId?: string;
@@ -104,6 +130,7 @@ export class AugurAnalytics {
     properties?: Record<string, any>,
     feedId?: string
   ): Promise<void> {
+    const deviceInfo = this.getDeviceInfo();
     const eventData: AugurEvent = {
       event,
       properties: {
@@ -111,6 +138,7 @@ export class AugurAnalytics {
         session_id: this.sessionId,
         user_id: this.userId,
         timestamp: new Date().toISOString(),
+        device_info: deviceInfo,
       },
     };
 
@@ -306,6 +334,144 @@ export class AugurAnalytics {
       sessionId: this.sessionId,
       feedId: this.feedId,
     });
+  }
+
+  /**
+   * Get device information
+   */
+  getDeviceInfo(): DeviceInfo {
+    const userAgent = navigator.userAgent;
+    const screen = window.screen;
+
+    return {
+      browser: this.detectBrowser(userAgent),
+      os: this.detectOS(userAgent),
+      device: this.detectDevice(userAgent, screen),
+      screen: {
+        width: screen.width,
+        height: screen.height,
+        pixelRatio: window.devicePixelRatio || 1,
+      },
+      location: {
+        country: this.detectCountry(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        language: navigator.language,
+      },
+      userAgent,
+    };
+  }
+
+  /**
+   * Detect browser information
+   */
+  private detectBrowser(userAgent: string): { name: string; version: string } {
+    const browsers = [
+      { name: "Chrome", regex: /Chrome\/(\d+\.\d+)/ },
+      { name: "Firefox", regex: /Firefox\/(\d+\.\d+)/ },
+      { name: "Safari", regex: /Version\/(\d+\.\d+).*Safari/ },
+      { name: "Edge", regex: /Edg\/(\d+\.\d+)/ },
+      { name: "Opera", regex: /OPR\/(\d+\.\d+)/ },
+      { name: "Internet Explorer", regex: /MSIE (\d+\.\d+)/ },
+    ];
+
+    for (const browser of browsers) {
+      const match = userAgent.match(browser.regex);
+      if (match) {
+        return { name: browser.name, version: match[1] };
+      }
+    }
+
+    return { name: "Unknown", version: "Unknown" };
+  }
+
+  /**
+   * Detect operating system
+   */
+  private detectOS(userAgent: string): { name: string; version: string } {
+    const osPatterns = [
+      { name: "Windows", regex: /Windows NT (\d+\.\d+)/ },
+      { name: "macOS", regex: /Mac OS X (\d+[._]\d+)/ },
+      { name: "Linux", regex: /Linux/ },
+      { name: "Android", regex: /Android (\d+\.\d+)/ },
+      { name: "iOS", regex: /OS (\d+[._]\d+).*like Mac OS X/ },
+    ];
+
+    for (const os of osPatterns) {
+      const match = userAgent.match(os.regex);
+      if (match) {
+        return {
+          name: os.name,
+          version:
+            os.name === "macOS" || os.name === "iOS"
+              ? match[1].replace("_", ".")
+              : match[1],
+        };
+      }
+    }
+
+    return { name: "Unknown", version: "Unknown" };
+  }
+
+  /**
+   * Detect device type
+   */
+  private detectDevice(
+    userAgent: string,
+    screen: Screen
+  ): { type: "desktop" | "mobile" | "tablet"; model?: string } {
+    const isMobile =
+      /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        userAgent
+      );
+    const isTablet = /iPad|Android(?=.*Tablet)|Windows.*Touch/i.test(userAgent);
+
+    if (isTablet) {
+      return { type: "tablet" };
+    }
+
+    if (isMobile) {
+      // Try to detect specific device models
+      const deviceModels = [
+        { model: "iPhone", regex: /iPhone/ },
+        { model: "Samsung Galaxy", regex: /Samsung/ },
+        { model: "Google Pixel", regex: /Pixel/ },
+        { model: "OnePlus", regex: /OnePlus/ },
+      ];
+
+      for (const device of deviceModels) {
+        if (device.regex.test(userAgent)) {
+          return { type: "mobile", model: device.model };
+        }
+      }
+
+      return { type: "mobile" };
+    }
+
+    return { type: "desktop" };
+  }
+
+  /**
+   * Detect country (basic implementation - can be enhanced with IP geolocation)
+   */
+  private detectCountry(): string | undefined {
+    // This is a basic implementation using timezone
+    // For production, you might want to use a geolocation service
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    const timezoneToCountry: Record<string, string> = {
+      "America/New_York": "US",
+      "America/Los_Angeles": "US",
+      "America/Chicago": "US",
+      "Europe/London": "GB",
+      "Europe/Paris": "FR",
+      "Europe/Berlin": "DE",
+      "Asia/Tokyo": "JP",
+      "Asia/Shanghai": "CN",
+      "Asia/Kolkata": "IN",
+      "Australia/Sydney": "AU",
+    };
+
+    return timezoneToCountry[timezone];
   }
 
   /**

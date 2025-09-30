@@ -24,6 +24,7 @@ export {
   useComponentTracking,
   useInteractionTracking,
   useFormTracking,
+  useDeviceInfo,
 } from "./hooks";
 
 // Re-export core types
@@ -32,4 +33,5 @@ export type {
   AugurEvent,
   AugurPageEvent,
   AugurIdentifyEvent,
+  DeviceInfo,
 } from "@augur/analytics-core";

@@ -30,7 +30,7 @@
     "react-dom": ">=16.8.0"
   },
   "dependencies": {
-    "@augur/analytics-core": "workspace:*"
+    "@augur/analytics-core": "file:../core"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

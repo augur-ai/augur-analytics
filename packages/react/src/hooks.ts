@@ -309,3 +309,11 @@ export function useFormTracking(formName: string) {
     trackFormFieldChange,
   };
 }
+
+/**
+ * Hook to get device information
+ */
+export function useDeviceInfo() {
+  const analytics = useAugur();
+  return analytics.getDeviceInfo();
+}
