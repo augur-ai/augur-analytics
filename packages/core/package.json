@@ -1,6 +1,6 @@
 {
   "name": "@augur/analytics-core",
-  "version": "1.0.0",
+  "version": "0.0.2",
   "description": "Core Augur Analytics SDK - Zero dependencies",
   "main": "dist/analytics.js",
   "types": "dist/analytics.d.ts",
