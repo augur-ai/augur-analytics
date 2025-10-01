@@ -38,6 +38,16 @@ echo "🔨 Building packages..."
 yarn build
 echo ""
 
+# Run tests
+echo "🧪 Running tests..."
+yarn test
+if [ $? -ne 0 ]; then
+    echo "❌ Tests failed! Aborting publish."
+    exit 1
+fi
+echo "✓ All tests passed"
+echo ""
+
 # Setup npm authentication
 echo "🔐 Setting up npm authentication..."
 echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc

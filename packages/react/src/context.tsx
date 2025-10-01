@@ -7,7 +7,7 @@ import {
   Analytics,
   createAnalytics,
   type AugurConfig,
-} from "@augur/analytics-core";
+} from "@augur-ai/analytics-core";
 
 interface AugurContextType {
   analytics: Analytics | null;

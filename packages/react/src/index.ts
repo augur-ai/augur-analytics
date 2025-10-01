@@ -34,4 +34,4 @@ export type {
   AugurPageEvent,
   AugurIdentifyEvent,
   DeviceInfo,
-} from "@augur/analytics-core";
+} from "@augur-ai/analytics-core";
