@@ -14,6 +14,7 @@ export interface AugurConfig {
   batchTimeout?: number; // Time in ms to wait before sending batch (default: 5000)
   maxRetries?: number; // Max retry attempts for failed requests (default: 3)
   enableLocalStorage?: boolean; // Persist failed events to localStorage (default: true)
+  sessionTimeout?: number; // Session timeout in ms (default: 30 minutes)
 }
 
 export interface AugurEvent {
@@ -75,8 +76,10 @@ export class AugurAnalytics {
   private batchTimer?: ReturnType<typeof setTimeout>;
   private maxRetries: number;
   private enableLocalStorage: boolean;
+  private sessionTimeout: number;
   private isSending: boolean = false;
   private unloadListenersAdded: boolean = false;
+  private readonly SESSION_STORAGE_KEY = "augur_session";
 
   constructor(config: AugurConfig) {
     this.writeKey = config.writeKey;
@@ -88,13 +91,17 @@ export class AugurAnalytics {
     this.batchTimeout = config.batchTimeout || 5000;
     this.maxRetries = config.maxRetries || 3;
     this.enableLocalStorage = config.enableLocalStorage !== false;
-    this.sessionId = config.sessionId || this.generateSessionId();
+    this.sessionTimeout = config.sessionTimeout || 30 * 60 * 1000; // Default: 30 minutes
+
+    // Get or create session ID with persistence
+    this.sessionId = config.sessionId || this.getOrCreateSession();
 
     this.log("Augur Analytics initialized", {
       sessionId: this.sessionId,
       feedId: this.feedId,
       batchSize: this.batchSize,
       batchTimeout: this.batchTimeout,
+      sessionTimeout: this.sessionTimeout,
     });
 
     this.setupAutoInjection();
@@ -110,6 +117,85 @@ export class AugurAnalytics {
     const random = Math.random().toString(36).substr(2, 9);
     const userId = this.userId ? this.userId.split("@")[0] : "anonymous";
     return `sess-${userId}-${timestamp}-${random}`;
+  }
+
+  /**
+   * Get or create a session with persistence
+   * Implements industry-standard 30-minute timeout behavior
+   */
+  private getOrCreateSession(): string {
+    if (
+      !this.enableLocalStorage ||
+      typeof window === "undefined" ||
+      !window.localStorage
+    ) {
+      return this.generateSessionId();
+    }
+
+    try {
+      const stored = localStorage.getItem(this.SESSION_STORAGE_KEY);
+
+      if (stored) {
+        const { sessionId, timestamp } = JSON.parse(stored);
+        const now = Date.now();
+        const elapsed = now - timestamp;
+
+        // Check if session is still valid (within timeout window)
+        if (elapsed < this.sessionTimeout) {
+          this.log("Reusing existing session", {
+            sessionId,
+            ageMinutes: Math.round(elapsed / 60000),
+          });
+          // Update timestamp to extend session
+          this.updateSessionTimestamp(sessionId);
+          return sessionId;
+        } else {
+          this.log("Session expired", {
+            sessionId,
+            ageMinutes: Math.round(elapsed / 60000),
+          });
+        }
+      }
+
+      // Create new session
+      const newSessionId = this.generateSessionId();
+      this.updateSessionTimestamp(newSessionId);
+      this.log("Created new session", { sessionId: newSessionId });
+      return newSessionId;
+    } catch (error) {
+      this.log(
+        "Error accessing session storage, generating new session",
+        error
+      );
+      return this.generateSessionId();
+    }
+  }
+
+  /**
+   * Update session timestamp in localStorage
+   * Called on initialization and on each activity (track call)
+   */
+  private updateSessionTimestamp(sessionId?: string): void {
+    if (
+      !this.enableLocalStorage ||
+      typeof window === "undefined" ||
+      !window.localStorage
+    ) {
+      return;
+    }
+
+    try {
+      const sid = sessionId || this.sessionId;
+      localStorage.setItem(
+        this.SESSION_STORAGE_KEY,
+        JSON.stringify({
+          sessionId: sid,
+          timestamp: Date.now(),
+        })
+      );
+    } catch (error) {
+      this.log("Error updating session timestamp", error);
+    }
   }
 
   /**
@@ -157,6 +243,9 @@ export class AugurAnalytics {
     eventName?: string,
     eventDescription?: string
   ): void {
+    // Update session timestamp on each activity (extends session timeout)
+    this.updateSessionTimestamp();
+
     const deviceInfo = this.getDeviceInfo();
 
     const payload: any = {
@@ -259,6 +348,9 @@ export class AugurAnalytics {
   async reset(): Promise<void> {
     this.userId = undefined;
     this.sessionId = this.generateSessionId();
+
+    // Update localStorage with new session
+    this.updateSessionTimestamp();
 
     return this.track("user_reset", {
       new_session_id: this.sessionId,

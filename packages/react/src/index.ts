@@ -5,7 +5,7 @@
 
 export { AugurProvider, useAugurContext } from "./context";
 export {
-  useAugur,
+  useAnalytics,
   useTrack,
   usePage,
   useIdentify,
@@ -16,7 +16,7 @@ export {
   useSetUserProperties,
   useTiming,
   useMetric,
-  useSessionId,
+  useAnalyticsSessionId,
   useFeedId,
   useSetFeedId,
   useTrackWithFeed,

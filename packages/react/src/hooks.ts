@@ -8,7 +8,7 @@ import { useAugurContext } from "./context";
 /**
  * Main hook to access Augur Analytics instance
  */
-export function useAugur() {
+export function useAnalytics() {
   const { analytics } = useAugurContext();
   return analytics!;
 }
@@ -17,7 +17,7 @@ export function useAugur() {
  * Hook to track events
  */
 export function useTrack() {
-  const analytics = useAugur();
+  const analytics = useAnalytics();
 
   return useCallback(
     (
@@ -43,7 +43,7 @@ export function useTrack() {
  * Hook to track page views
  */
 export function usePage() {
-  const analytics = useAugur();
+  const analytics = useAnalytics();
 
   return useCallback(
     (properties?: {
@@ -62,7 +62,7 @@ export function usePage() {
  * Hook to identify users
  */
 export function useIdentify() {
-  const analytics = useAugur();
+  const analytics = useAnalytics();
 
   return useCallback(
     (userId: string, traits?: Record<string, any>) => {
@@ -76,7 +76,7 @@ export function useIdentify() {
  * Hook to alias users
  */
 export function useAlias() {
-  const analytics = useAugur();
+  const analytics = useAnalytics();
 
   return useCallback(
     (newUserId: string, oldUserId?: string) => {
@@ -90,7 +90,7 @@ export function useAlias() {
  * Hook to track group associations
  */
 export function useGroup() {
-  const analytics = useAugur();
+  const analytics = useAnalytics();
 
   return useCallback(
     (groupId: string, traits?: Record<string, any>) => {
@@ -104,7 +104,7 @@ export function useGroup() {
  * Hook to track screen views
  */
 export function useScreen() {
-  const analytics = useAugur();
+  const analytics = useAnalytics();
 
   return useCallback(
     (screenName: string, properties?: Record<string, any>) => {
@@ -118,7 +118,7 @@ export function useScreen() {
  * Hook to reset user data
  */
 export function useReset() {
-  const analytics = useAugur();
+  const analytics = useAnalytics();
 
   return useCallback(() => {
     return analytics.reset();
@@ -129,7 +129,7 @@ export function useReset() {
  * Hook to set user properties
  */
 export function useSetUserProperties() {
-  const analytics = useAugur();
+  const analytics = useAnalytics();
 
   return useCallback(
     (properties: Record<string, any>) => {
@@ -143,7 +143,7 @@ export function useSetUserProperties() {
  * Hook to track timing events
  */
 export function useTiming() {
-  const analytics = useAugur();
+  const analytics = useAnalytics();
 
   return useCallback(
     (category: string, variable: string, value: number, label?: string) => {
@@ -157,7 +157,7 @@ export function useTiming() {
  * Hook to track custom metrics
  */
 export function useMetric() {
-  const analytics = useAugur();
+  const analytics = useAnalytics();
 
   return useCallback(
     (name: string, value: number, properties?: Record<string, any>) => {
@@ -170,8 +170,8 @@ export function useMetric() {
 /**
  * Hook to get session ID
  */
-export function useSessionId() {
-  const analytics = useAugur();
+export function useAnalyticsSessionId() {
+  const analytics = useAnalytics();
   return analytics.getSessionId();
 }
 
@@ -179,7 +179,7 @@ export function useSessionId() {
  * Hook to get current feed ID
  */
 export function useFeedId() {
-  const analytics = useAugur();
+  const analytics = useAnalytics();
   return analytics.getFeedId();
 }
 
@@ -187,7 +187,7 @@ export function useFeedId() {
  * Hook to set feed ID for all future events
  */
 export function useSetFeedId() {
-  const analytics = useAugur();
+  const analytics = useAnalytics();
 
   return useCallback(
     (feedId: string) => {
@@ -201,7 +201,7 @@ export function useSetFeedId() {
  * Hook to track events with feed ID override
  */
 export function useTrackWithFeed() {
-  const analytics = useAugur();
+  const analytics = useAnalytics();
 
   return useCallback(
     (
@@ -338,6 +338,6 @@ export function useFormTracking(formName: string) {
  * Hook to get device information
  */
 export function useDeviceInfo() {
-  const analytics = useAugur();
+  const analytics = useAnalytics();
   return analytics.getDeviceInfo();
 }

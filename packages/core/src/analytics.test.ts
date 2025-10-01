@@ -371,4 +371,96 @@ describe("AugurAnalytics", () => {
       expect(mockSendBeacon).toHaveBeenCalled();
     });
   });
+
+  describe("Session Persistence", () => {
+    it("should persist session to localStorage", () => {
+      const analytics1 = createAnalytics({
+        writeKey: "test-key",
+        endpoint: "https://api.example.com",
+      });
+
+      const session1 = analytics1.getSessionId();
+
+      // Check localStorage
+      const stored = localStorageMock.getItem("augur_session");
+      expect(stored).toBeTruthy();
+
+      const parsed = JSON.parse(stored!);
+      expect(parsed.sessionId).toBe(session1);
+      expect(parsed.timestamp).toBeTruthy();
+    });
+
+    it("should reuse session within timeout window", () => {
+      const analytics1 = createAnalytics({
+        writeKey: "test-key",
+        endpoint: "https://api.example.com",
+      });
+
+      const session1 = analytics1.getSessionId();
+
+      // Create another instance (simulates page reload)
+      const analytics2 = createAnalytics({
+        writeKey: "test-key",
+        endpoint: "https://api.example.com",
+      });
+
+      const session2 = analytics2.getSessionId();
+
+      // Should reuse same session
+      expect(session2).toBe(session1);
+    });
+
+    it("should create new session after timeout", () => {
+      const analytics1 = createAnalytics({
+        writeKey: "test-key",
+        endpoint: "https://api.example.com",
+        sessionTimeout: 100, // 100ms for testing
+      });
+
+      const session1 = analytics1.getSessionId();
+
+      // Manually expire session
+      const stored = JSON.parse(localStorageMock.getItem("augur_session")!);
+      stored.timestamp = Date.now() - 200; // 200ms ago (past timeout)
+      localStorageMock.setItem("augur_session", JSON.stringify(stored));
+
+      // Create another instance
+      const analytics2 = createAnalytics({
+        writeKey: "test-key",
+        endpoint: "https://api.example.com",
+        sessionTimeout: 100,
+      });
+
+      const session2 = analytics2.getSessionId();
+
+      // Should create new session
+      expect(session2).not.toBe(session1);
+    });
+
+    it("should update session timestamp on track", () => {
+      const analytics1 = createAnalytics({
+        writeKey: "test-key",
+        endpoint: "https://api.example.com",
+      });
+
+      const storedBefore = JSON.parse(
+        localStorageMock.getItem("augur_session")!
+      );
+      const timestampBefore = storedBefore.timestamp;
+
+      // Wait a bit
+      jest.advanceTimersByTime(100);
+
+      // Track event
+      analytics1.track("test_event");
+
+      const storedAfter = JSON.parse(
+        localStorageMock.getItem("augur_session")!
+      );
+      const timestampAfter = storedAfter.timestamp;
+
+      // Timestamp should be updated
+      expect(timestampAfter).toBeGreaterThanOrEqual(timestampBefore);
+    });
+  });
 });

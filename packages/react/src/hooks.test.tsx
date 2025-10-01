@@ -10,7 +10,7 @@ import {
   usePage,
   useIdentify,
   useDeviceInfo,
-  useSessionId,
+  useAnalyticsSessionId,
   useFeedId,
   useSetFeedId,
 } from "./hooks";
@@ -136,9 +136,9 @@ describe("React Hooks", () => {
     });
   });
 
-  describe("useSessionId", () => {
+  describe("useAnalyticsSessionId", () => {
     it("should return session ID", () => {
-      const { result } = renderHook(() => useSessionId(), { wrapper });
+      const { result } = renderHook(() => useAnalyticsSessionId(), { wrapper });
 
       expect(result.current).toBe("test-session-id");
     });
