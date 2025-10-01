@@ -51,6 +51,7 @@ echo ""
 # Setup npm authentication
 echo "🔐 Setting up npm authentication..."
 echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+echo ""
 
 # Publish core package
 echo "📤 Publishing @augur/analytics-core..."
