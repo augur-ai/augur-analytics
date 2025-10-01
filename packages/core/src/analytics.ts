@@ -10,6 +10,10 @@ export interface AugurConfig {
   sessionId?: string;
   debug?: boolean;
   feedId?: string; // Analytics feed ID (UUID format)
+  batchSize?: number; // Number of events to batch before sending (default: 10)
+  batchTimeout?: number; // Time in ms to wait before sending batch (default: 5000)
+  maxRetries?: number; // Max retry attempts for failed requests (default: 3)
+  enableLocalStorage?: boolean; // Persist failed events to localStorage (default: true)
 }
 
 export interface AugurEvent {
@@ -65,6 +69,14 @@ export class AugurAnalytics {
   private endpoint: string;
   private debug: boolean;
   private feedId?: string;
+  private eventQueue: any[] = [];
+  private batchSize: number;
+  private batchTimeout: number;
+  private batchTimer?: ReturnType<typeof setTimeout>;
+  private maxRetries: number;
+  private enableLocalStorage: boolean;
+  private isSending: boolean = false;
+  private unloadListenersAdded: boolean = false;
 
   constructor(config: AugurConfig) {
     this.apiKey = config.apiKey;
@@ -72,13 +84,22 @@ export class AugurAnalytics {
     this.userId = config.userId;
     this.debug = config.debug || false;
     this.feedId = config.feedId;
+    this.batchSize = config.batchSize || 10;
+    this.batchTimeout = config.batchTimeout || 5000;
+    this.maxRetries = config.maxRetries || 3;
+    this.enableLocalStorage = config.enableLocalStorage !== false;
     this.sessionId = config.sessionId || this.generateSessionId();
 
     this.log("Augur Analytics initialized", {
       sessionId: this.sessionId,
       feedId: this.feedId,
+      batchSize: this.batchSize,
+      batchTimeout: this.batchTimeout,
     });
+
     this.setupAutoInjection();
+    this.setupUnloadHandlers();
+    this.sendPersistedEvents();
   }
 
   /**
@@ -129,18 +150,21 @@ export class AugurAnalytics {
   /**
    * Track a custom event
    */
-  async track(
+  track(
     event: string,
     properties?: Record<string, any>,
     feedId?: string,
     eventName?: string,
     eventDescription?: string
-  ): Promise<void> {
+  ): void {
     const deviceInfo = this.getDeviceInfo();
-    const eventData: AugurEvent = {
-      event,
-      eventName,
-      eventDescription,
+
+    const payload: any = {
+      write_key: this.apiKey,
+      session_id: this.sessionId,
+      event_type: event,
+      event_name: eventName || event,
+      event_description: eventDescription || "",
       properties: {
         ...properties,
         session_id: this.sessionId,
@@ -148,20 +172,26 @@ export class AugurAnalytics {
         timestamp: new Date().toISOString(),
         device_info: deviceInfo,
       },
+      source: "frontend",
     };
 
-    // Add feed ID override if provided
-    if (feedId) {
-      eventData.feedId = feedId;
+    // Add feed_id - prioritize per-event override, then global feed ID
+    const effectiveFeedId = feedId || this.feedId;
+    if (effectiveFeedId) {
+      payload.feed_id = effectiveFeedId;
     }
 
-    this.log("Tracking event", eventData);
+    this.log("Queueing event", payload);
 
-    try {
-      await this.sendEvent(eventData);
-    } catch (error) {
-      this.log("Error tracking event", error);
-      throw error;
+    // Add to queue
+    this.eventQueue.push(payload);
+
+    // Check if we should send immediately
+    if (this.eventQueue.length >= this.batchSize) {
+      this.flushQueue();
+    } else {
+      // Reset batch timer
+      this.resetBatchTimer();
     }
   }
 
@@ -277,57 +307,183 @@ export class AugurAnalytics {
   }
 
   /**
-   * Send event to Augur backend
+   * Reset the batch timer
    */
-  private async sendEvent(eventData: AugurEvent): Promise<void> {
-    const payload: any = {
-      session_id: this.sessionId,
-      event_type: eventData.event,
-      event_name: eventData.eventName || eventData.event, // Fallback to event_type if not provided
-      event_description: eventData.eventDescription || "", // Default to empty string if not provided
-      properties: eventData.properties,
-      source: "frontend",
-    };
-
-    // Add feed_id - prioritize per-event override, then global feed ID
-    const feedId = eventData.feedId || this.feedId;
-    if (feedId) {
-      payload.feed_id = feedId;
+  private resetBatchTimer(): void {
+    if (this.batchTimer) {
+      clearTimeout(this.batchTimer);
     }
 
-    // Send as array of events
-    const body = [payload];
+    this.batchTimer = setTimeout(() => {
+      this.flushQueue();
+    }, this.batchTimeout);
+  }
 
-    // Try Beacon API first (more efficient, survives page unload)
-    if (navigator.sendBeacon) {
-      const headers = {
-        type: "application/json",
-      };
-      const blob = new Blob([JSON.stringify(body)], headers);
-      const url = new URL(`${this.endpoint}/analytics/events`);
-      url.searchParams.set("api_key", this.apiKey); // Add API key as query param for beacon
+  /**
+   * Flush the event queue and send to backend
+   */
+  flushQueue(): void {
+    if (this.eventQueue.length === 0 || this.isSending) {
+      return;
+    }
 
-      const success = navigator.sendBeacon(url.toString(), blob);
+    // Clear the batch timer
+    if (this.batchTimer) {
+      clearTimeout(this.batchTimer);
+      this.batchTimer = undefined;
+    }
 
-      if (success) {
-        return; // Beacon sent successfully
+    const eventsToSend = [...this.eventQueue];
+    this.eventQueue = [];
+    this.isSending = true;
+
+    this.log(`Flushing ${eventsToSend.length} events`, eventsToSend);
+
+    this.sendBatch(eventsToSend)
+      .then(() => {
+        this.log("Events sent successfully");
+        this.isSending = false;
+      })
+      .catch((error) => {
+        this.log("Error sending events", error);
+        this.isSending = false;
+
+        // Persist failed events to localStorage if enabled
+        if (this.enableLocalStorage) {
+          this.persistEvents(eventsToSend);
+        }
+      });
+  }
+
+  /**
+   * Send batch of events to backend with retry logic
+   */
+  private async sendBatch(events: any[], retryCount = 0): Promise<void> {
+    const body = events;
+
+    try {
+      // Try Beacon API first (more efficient, survives page unload)
+      if (navigator.sendBeacon) {
+        const headers = {
+          type: "application/json",
+        };
+        const blob = new Blob([JSON.stringify(body)], headers);
+        const success = navigator.sendBeacon(
+          `${this.endpoint}/analytics/events`,
+          blob
+        );
+
+        if (success) {
+          return; // Beacon sent successfully
+        }
+        // Fall through to fetch if beacon fails
       }
-      // Fall through to fetch if beacon fails
+
+      // Fallback to fetch with keepalive
+      const response = await fetch(`${this.endpoint}/analytics/events`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+        keepalive: true,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    } catch (error) {
+      // Retry logic
+      if (retryCount < this.maxRetries) {
+        this.log(
+          `Retrying batch send (attempt ${retryCount + 1}/${this.maxRetries})`
+        );
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000 * (retryCount + 1))
+        );
+        return this.sendBatch(events, retryCount + 1);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Setup unload handlers (pagehide and visibilitychange)
+   * Following best practices from https://nicj.net/beaconing-in-practice/
+   */
+  private setupUnloadHandlers(): void {
+    if (this.unloadListenersAdded) {
+      return;
     }
 
-    // Fallback to fetch
-    const response = await fetch(`${this.endpoint}/analytics/events`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": this.apiKey,
-      },
-      body: JSON.stringify(body),
-      keepalive: true,
+    // Listen to pagehide event (recommended over unload/beforeunload)
+    window.addEventListener("pagehide", () => {
+      this.log("pagehide event - flushing queue");
+      this.flushQueue();
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    // Listen to visibilitychange when page becomes hidden
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") {
+        this.log("visibilitychange (hidden) - flushing queue");
+        this.flushQueue();
+      }
+    });
+
+    this.unloadListenersAdded = true;
+    this.log("Unload handlers setup complete");
+  }
+
+  /**
+   * Persist failed events to localStorage
+   */
+  private persistEvents(events: any[]): void {
+    try {
+      const key = `augur_events_${this.sessionId}`;
+      const existing = localStorage.getItem(key);
+      const existingEvents = existing ? JSON.parse(existing) : [];
+      const combined = [...existingEvents, ...events];
+
+      // Limit to 100 events to avoid localStorage quota issues
+      const limited = combined.slice(-100);
+
+      localStorage.setItem(key, JSON.stringify(limited));
+      this.log(`Persisted ${events.length} events to localStorage`);
+    } catch (error) {
+      this.log("Error persisting events to localStorage", error);
+    }
+  }
+
+  /**
+   * Send any persisted events from previous sessions
+   */
+  private sendPersistedEvents(): void {
+    if (!this.enableLocalStorage) {
+      return;
+    }
+
+    try {
+      const keys = Object.keys(localStorage).filter((key) =>
+        key.startsWith("augur_events_")
+      );
+
+      for (const key of keys) {
+        const events = JSON.parse(localStorage.getItem(key) || "[]");
+
+        if (events.length > 0) {
+          this.log(`Found ${events.length} persisted events, sending...`);
+          this.sendBatch(events)
+            .then(() => {
+              localStorage.removeItem(key);
+              this.log("Persisted events sent and removed");
+            })
+            .catch((error) => {
+              this.log("Error sending persisted events", error);
+            });
+        }
+      }
+    } catch (error) {
+      this.log("Error loading persisted events", error);
     }
   }
 

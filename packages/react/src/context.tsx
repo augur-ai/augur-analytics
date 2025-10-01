@@ -3,10 +3,14 @@
  */
 
 import React, { createContext, useContext, ReactNode } from "react";
-import { AugurAnalytics, AugurConfig } from "@augur/analytics-core";
+import {
+  Analytics,
+  createAnalytics,
+  type AugurConfig,
+} from "@augur/analytics-core";
 
 interface AugurContextType {
-  analytics: AugurAnalytics | null;
+  analytics: Analytics | null;
   isInitialized: boolean;
 }
 
@@ -26,7 +30,6 @@ export function AugurProvider({ children, config }: AugurProviderProps) {
       return null; // SSR support
     }
 
-    const { createAnalytics } = require("@augur/analytics-core");
     return createAnalytics(config);
   });
 

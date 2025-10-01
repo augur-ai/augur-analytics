@@ -1,18 +1,29 @@
 {
   "name": "@augur/analytics-core",
   "version": "0.0.2",
-  "description": "Core Augur Analytics SDK - Zero dependencies",
-  "main": "dist/analytics.js",
-  "types": "dist/analytics.d.ts",
+  "description": "Core Augur Analytics SDK - Zero dependencies, batching, retry logic, and localStorage persistence",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
   "files": [
     "dist/",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "prepare": "tsc",
+    "prepublishOnly": "npm run build",
     "test": "jest",
     "lint": "eslint src --ext .ts"
   },
@@ -21,10 +32,27 @@
     "analytics",
     "session",
     "tracking",
-    "correlation"
+    "correlation",
+    "batching",
+    "telemetry",
+    "rum",
+    "real-user-monitoring",
+    "beacon"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/augur-ai/augur-analytics.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/augur-ai/augur-analytics/issues"
+  },
+  "homepage": "https://github.com/augur-ai/augur-analytics#readme",
   "author": "Augur Team",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0",

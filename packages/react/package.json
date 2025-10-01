@@ -1,18 +1,29 @@
 {
   "name": "@augur/analytics-react",
   "version": "0.0.2",
-  "description": "React hooks for Augur Analytics SDK",
+  "description": "React hooks for Augur Analytics SDK - Easy integration with batching and device detection",
+  "type": "module",
   "main": "dist/index.js",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
   "files": [
     "dist/",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "prepare": "tsc",
+    "prepublishOnly": "npm run build",
     "test": "jest",
     "lint": "eslint src --ext .ts,.tsx"
   },
@@ -22,16 +33,32 @@
     "react",
     "hooks",
     "session",
-    "tracking"
+    "tracking",
+    "telemetry",
+    "device-detection",
+    "rum",
+    "real-user-monitoring"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/augur-ai/augur-analytics.git",
+    "directory": "packages/react"
+  },
+  "bugs": {
+    "url": "https://github.com/augur-ai/augur-analytics/issues"
+  },
+  "homepage": "https://github.com/augur-ai/augur-analytics#readme",
   "author": "Augur Team",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "react": ">=16.8.0",
     "react-dom": ">=16.8.0"
   },
   "dependencies": {
-    "@augur/analytics-core": "file:../core"
+    "@augur/analytics-core": "^0.0.2"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
