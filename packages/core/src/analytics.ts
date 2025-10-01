@@ -4,7 +4,7 @@
  */
 
 export interface AugurConfig {
-  apiKey: string;
+  writeKey: string;
   endpoint: string;
   userId?: string;
   sessionId?: string;
@@ -65,7 +65,7 @@ export interface DeviceInfo {
 export class AugurAnalytics {
   private sessionId: string;
   private userId?: string;
-  private apiKey: string;
+  private writeKey: string;
   private endpoint: string;
   private debug: boolean;
   private feedId?: string;
@@ -79,7 +79,7 @@ export class AugurAnalytics {
   private unloadListenersAdded: boolean = false;
 
   constructor(config: AugurConfig) {
-    this.apiKey = config.apiKey;
+    this.writeKey = config.writeKey;
     this.endpoint = config.endpoint;
     this.userId = config.userId;
     this.debug = config.debug || false;
@@ -160,7 +160,7 @@ export class AugurAnalytics {
     const deviceInfo = this.getDeviceInfo();
 
     const payload: any = {
-      write_key: this.apiKey,
+      write_key: this.writeKey,
       session_id: this.sessionId,
       event_type: event,
       event_name: eventName || event,

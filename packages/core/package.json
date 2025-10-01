@@ -1,6 +1,6 @@
 {
   "name": "@augur-ai/analytics-core",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Core Augur Analytics SDK - Zero dependencies, batching, retry logic, and localStorage persistence",
   "type": "module",
   "main": "dist/index.js",

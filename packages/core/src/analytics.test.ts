@@ -62,7 +62,7 @@ describe("AugurAnalytics", () => {
     });
 
     analytics = createAnalytics({
-      apiKey: "test-api-key",
+      writeKey: "test-write-key",
       endpoint: "https://test.com/api/v1",
       feedId: "test-feed-id",
       batchSize: 2,
@@ -85,7 +85,7 @@ describe("AugurAnalytics", () => {
 
     it("should use custom session ID if provided", () => {
       const customAnalytics = createAnalytics({
-        apiKey: "test-api-key",
+        writeKey: "test-write-key",
         endpoint: "https://test.com/api/v1",
         sessionId: "custom-session-123",
       });

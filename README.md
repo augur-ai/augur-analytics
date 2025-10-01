@@ -24,10 +24,10 @@ npm install @augur/analytics-react
 #### Core (Vanilla JS/TS)
 
 ```typescript
-import { createAnalytics } from "@augur/analytics-core";
+import { createAnalytics } from "@augur-ai/analytics-core";
 
 const analytics = createAnalytics({
-  apiKey: "your-api-key",
+  writeKey: "your-write-key",
   endpoint: "https://your-backend.com/api/v1",
   feedId: "your-feed-id",
   batchSize: 10, // Optional: events per batch (default: 10)

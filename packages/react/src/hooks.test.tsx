@@ -51,7 +51,7 @@ jest.mock("@augur-ai/analytics-core", () => ({
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <AugurProvider
     config={{
-      apiKey: "test-api-key",
+      writeKey: "test-write-key",
       endpoint: "https://test.com/api/v1",
     }}
   >

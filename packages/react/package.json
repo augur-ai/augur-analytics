@@ -1,6 +1,6 @@
 {
   "name": "@augur-ai/analytics-react",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "React hooks for Augur Analytics SDK - Easy integration with batching and device detection",
   "type": "module",
   "main": "dist/index.js",
@@ -58,7 +58,7 @@
     "react-dom": ">=16.8.0"
   },
   "dependencies": {
-    "@augur-ai/analytics-core": "^0.0.2"
+    "@augur-ai/analytics-core": "^0.0.3"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
