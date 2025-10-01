@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@augur-ai/analytics-core@^0.0.3":
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/@augur-ai/analytics-core/-/analytics-core-0.0.3.tgz#034acb99ff434f3051fce4bbead4be87ae92bd3a"
-  integrity sha512-KtOIpGd/fbR6Gv7jNixowIJPIsbIZx/O6nRHHzuo5jMfBUgFXdrjbmMqz9+Rp21mIv+ySogCpXMUOQrZ+bnDuA==
+"@augur-ai/analytics-core@^0.0.6":
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/@augur-ai/analytics-core/-/analytics-core-0.0.2.tgz#dc0e5a8d5ae76f9b1f7d9d438ab35a3995d913de"
+  integrity sha512-QaZlHn9lj+Eb0OqQ7XoyLMvzX2glOMA7jhYHGgEiga4u1X6iTiEZL88/Ly3s7usMV0TeC1UaDk7bDJm1BEcwhQ==
 
 "@babel/code-frame@^7.0.0", "@babel/code-frame@^7.10.4", "@babel/code-frame@^7.12.13", "@babel/code-frame@^7.27.1":
   version "7.27.1"
