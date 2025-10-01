@@ -369,7 +369,7 @@ export class AugurAnalytics {
         };
         const blob = new Blob([JSON.stringify(body)], headers);
         const success = navigator.sendBeacon(
-          `${this.endpoint}/analytics/events`,
+          `${this.endpoint}/api/v1/analytics/events`,
           blob
         );
 
@@ -380,7 +380,7 @@ export class AugurAnalytics {
       }
 
       // Fallback to fetch with keepalive
-      const response = await fetch(`${this.endpoint}/analytics/events`, {
+      const response = await fetch(`${this.endpoint}/api/v1/analytics/events`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

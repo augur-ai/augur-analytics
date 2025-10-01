@@ -260,7 +260,7 @@ export class AugurAnalytics {
     // Use Beacon API if available, fallback to fetch
     if (navigator.sendBeacon) {
       const success = navigator.sendBeacon(
-        `${this.endpoint}/analytics/events`,
+        `${this.endpoint}/api/v1/analytics/events`,
         JSON.stringify(payload)
       );
 
@@ -268,7 +268,7 @@ export class AugurAnalytics {
         throw new Error("Failed to send beacon");
       }
     } else {
-      const response = await fetch(`${this.endpoint}/analytics/events`, {
+      const response = await fetch(`${this.endpoint}/api/v1/analytics/events`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
