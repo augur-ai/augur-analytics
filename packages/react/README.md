@@ -1,11 +1,11 @@
-# @augur/analytics-react
+# @augur-ai/analytics-react
 
 React hooks and components for the Augur Analytics SDK. Provides a seamless React integration for tracking user interactions and correlating frontend events with backend traces.
 
 ## Installation
 
 ```bash
-npm install @augur/analytics-react @augur/analytics-core
+npm install @augur-ai/analytics-react
 ```
 
 ## Quick Start
@@ -16,14 +16,14 @@ Wrap your app with the `AugurProvider`:
 
 ```tsx
 import React from "react";
-import { AugurProvider } from "@augur/analytics-react";
+import { AugurProvider } from "@augur-ai/analytics-react";
 
 function App() {
   return (
     <AugurProvider
       config={{
-        apiKey: "your-augur-api-key",
-        endpoint: "https://augur.com",
+        writeKey: "your-augur-write-key",
+        endpoint: "https://augur.com/api/v1",
         userId: "user123@example.com",
         debug: true,
       }}
@@ -38,7 +38,7 @@ function App() {
 
 ```tsx
 import React from "react";
-import { useTrack, usePage, useIdentify } from "@augur/analytics-react";
+import { useTrack, usePage, useIdentify } from "@augur-ai/analytics-react";
 
 function SummaryButton() {
   const track = useTrack();
@@ -71,85 +71,82 @@ function UserProfile() {
 
 ### Core Hooks
 
-#### `useAugur()`
+| Hook                      | Purpose                                    | Returns                                        | Auto-cleanup |
+| ------------------------- | ------------------------------------------ | ---------------------------------------------- | ------------ |
+| `useAnalytics()`          | Get analytics instance for manual tracking | `AugurAnalytics`                               | ❌           |
+| `useTrack()`              | Track events with automatic cleanup        | `(event: string, properties?: object) => void` | ✅           |
+| `usePage()`               | Track page views with automatic cleanup    | `(properties?: object) => void`                | ✅           |
+| `useIdentify()`           | Identify users with automatic cleanup      | `(userId: string, traits?: object) => void`    | ✅           |
+| `useAnalyticsSessionId()` | Get current session ID                     | `string`                                       | ❌           |
 
-Get the analytics instance directly.
-
-```tsx
-const analytics = useAugur();
-await analytics.track("custom_event", { data: "value" });
-```
-
-#### `useTrack()`
-
-Track custom events.
+#### Hook Examples
 
 ```tsx
+// useAnalytics() - Manual control
+const analytics = useAnalytics();
+const handleComplexEvent = () => {
+  analytics.track(
+    "purchase",
+    { amount: 99.99 },
+    "ecommerce",
+    "Purchase Completed",
+    "User completed checkout"
+  );
+  analytics.timing("checkout", "duration", 1200);
+  analytics.metric("conversion_rate", 0.15);
+};
+
+// useTrack() - Event tracking
 const track = useTrack();
-
-// Track button clicks
 const handleClick = () => {
   track("button_clicked", { button_id: "summary-btn" });
 };
-```
 
-#### `usePage()`
-
-Track page views.
-
-```tsx
+// usePage() - Page views
 const trackPage = usePage();
-
-// Track page view
 trackPage({ path: "/dashboard", title: "Dashboard" });
-```
 
-#### `useIdentify()`
-
-Identify users.
-
-```tsx
+// useIdentify() - User identification
 const identify = useIdentify();
-
-// Identify user
 identify("user123@example.com", {
   name: "John Doe",
   plan: "premium",
 });
+
+// useAnalyticsSessionId() - Session management
+const sessionId = useAnalyticsSessionId();
+console.log("Current session:", sessionId); // "sess-user123-1696180800000-a7x2k9m1p"
 ```
 
 ### Advanced Hooks
 
-#### `usePageTracking()`
+| Hook                       | Purpose                                 | Parameters                                                    | Auto-cleanup |
+| -------------------------- | --------------------------------------- | ------------------------------------------------------------- | ------------ |
+| `usePageTracking()`        | Auto-track page views on route changes  | None                                                          | ✅           |
+| `useComponentTracking()`   | Track component mount/unmount events    | `componentName: string, properties?: object`                  | ✅           |
+| `useInteractionTracking()` | Track user interactions with debouncing | `eventName: string, debounceMs?: number, properties?: object` | ✅           |
+| `useFormTracking()`        | Track form interactions                 | `formName: string`                                            | ✅           |
+| `useTiming()`              | Track timing events                     | None                                                          | ✅           |
+| `useMetric()`              | Track custom metrics                    | None                                                          | ✅           |
 
-Automatically track page views on route changes.
+#### Advanced Hook Examples
 
 ```tsx
+// usePageTracking() - Auto page tracking
 function App() {
   usePageTracking(); // Automatically tracks page views
   return <Router>{/* Your routes */}</Router>;
 }
-```
 
-#### `useComponentTracking(componentName, properties?)`
-
-Track component mount/unmount events.
-
-```tsx
+// useComponentTracking() - Component lifecycle
 function SummaryWidget() {
   useComponentTracking("SummaryWidget", {
     widget_type: "ai_summary",
   });
-
   return <div>Summary Widget</div>;
 }
-```
 
-#### `useInteractionTracking(eventName, debounceMs?, properties?)`
-
-Track user interactions with debouncing.
-
-```tsx
+// useInteractionTracking() - Debounced interactions
 function SearchInput() {
   const trackSearch = useInteractionTracking("search_typed", 500, {
     component: "search_input",
@@ -161,66 +158,28 @@ function SearchInput() {
 
   return <input onChange={handleChange} />;
 }
-```
 
-#### `useFormTracking(formName)`
-
-Track form interactions.
-
-```tsx
+// useFormTracking() - Form interactions
 function ContactForm() {
-  const { trackFormStart, trackFormSubmit, trackFormError } =
-    useFormTracking("contact_form");
+  const trackForm = useFormTracking("contact_form");
 
-  const handleSubmit = async (data) => {
-    try {
-      trackFormStart();
-      await submitForm(data);
-      trackFormSubmit();
-    } catch (error) {
-      trackFormError(error.message);
-    }
+  const handleSubmit = (formData) => {
+    trackForm("form_submitted", { fields: Object.keys(formData) });
   };
 
   return <form onSubmit={handleSubmit}>{/* form fields */}</form>;
 }
-```
 
-### Utility Hooks
-
-#### `useSessionId()`
-
-Get the current session ID.
-
-```tsx
-function DebugInfo() {
-  const sessionId = useSessionId();
-  return <div>Session: {sessionId}</div>;
-}
-```
-
-#### `useTiming()`
-
-Track timing events.
-
-```tsx
+// useTiming() - Performance tracking
 const trackTiming = useTiming();
+const fetchData = async () => {
+  const start = Date.now();
+  const data = await api.getData();
+  trackTiming("api", "response_time", Date.now() - start, "user_profile");
+};
 
-// Track API response time
-const startTime = Date.now();
-const response = await fetch("/api/data");
-const duration = Date.now() - startTime;
-trackTiming("api", "response_time", duration, "user_data");
-```
-
-#### `useMetric()`
-
-Track custom metrics.
-
-```tsx
+// useMetric() - Custom metrics
 const trackMetric = useMetric();
-
-// Track conversion rate
 trackMetric("conversion_rate", 0.15, {
   campaign: "summer_sale",
 });
@@ -244,7 +203,7 @@ function App() {
   return (
     <AugurProvider
       config={{
-        apiKey: process.env.REACT_APP_AUGUR_API_KEY,
+        writeKey: process.env.REACT_APP_AUGUR_WRITE_KEY,
         endpoint: process.env.REACT_APP_AUGUR_ENDPOINT,
         userId: getCurrentUser()?.id,
         debug: process.env.NODE_ENV === "development",
@@ -306,7 +265,7 @@ function Dashboard() {
 ### Error Tracking
 
 ```tsx
-import { useTrack } from "@augur/analytics-react";
+import { useTrack } from "@augur-ai/analytics-react";
 
 function ErrorBoundary({ children }) {
   const track = useTrack();
@@ -332,7 +291,7 @@ function ErrorBoundary({ children }) {
 ### Performance Tracking
 
 ```tsx
-import { useTiming, useMetric } from "@augur/analytics-react";
+import { useTiming, useMetric } from "@augur-ai/analytics-react";
 
 function DataLoader() {
   const trackTiming = useTiming();
@@ -370,21 +329,43 @@ function DataLoader() {
 Full TypeScript support with comprehensive type definitions:
 
 ```tsx
-import { AugurConfig, AugurEvent } from "@augur/analytics-react";
+import { AugurConfig, AugurEvent } from "@augur-ai/analytics-react";
 
 const config: AugurConfig = {
-  apiKey: "your-key",
-  endpoint: "https://augur.com",
+  writeKey: "your-key",
+  endpoint: "https://augur.com/api/v1",
   userId: "user123",
   debug: true,
 };
 ```
 
+## ✨ Features
+
+### 🎯 Industry-Standard Session Management
+
+- **30-minute session timeout** (configurable)
+- Sessions persist across page reloads via localStorage
+- Session extends with each user activity
+- Matches Amplitude/Google Analytics behavior
+
+### 🚀 Automatic Batching & Retry Logic
+
+- Configurable batch size and timeout
+- 3 retry attempts with exponential backoff
+- localStorage persistence for failed events
+- Smart beacon strategy with fetch fallback
+
+### 📱 Device Detection
+
+- Automatic browser, OS, and device type detection
+- Screen resolution and pixel ratio
+- Timezone and language detection
+
 ## Bundle Size
 
-- **Core**: ~3KB (zero dependencies)
-- **React**: ~2KB (depends on core)
-- **Total**: ~5KB
+- **Core**: ~11KB (zero dependencies)
+- **React**: ~8KB (depends on core)
+- **Total**: ~19KB
 
 ## License
 

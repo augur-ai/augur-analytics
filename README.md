@@ -1,11 +1,11 @@
 # Augur Analytics SDK
 
-Modern analytics SDK with batching, retry logic, device detection, and localStorage persistence.
+Modern analytics SDK with industry-standard session management, batching, retry logic, device detection, and localStorage persistence.
 
 ## 📦 Packages
 
-- **[@augur/analytics-core](packages/core)** - Core SDK with zero dependencies
-- **[@augur/analytics-react](packages/react)** - React hooks for easy integration
+- **[@augur-ai/analytics-core](packages/core)** - Core SDK with zero dependencies
+- **[@augur-ai/analytics-react](packages/react)** - React hooks for easy integration
 
 ## 🚀 Quick Start
 
@@ -13,10 +13,10 @@ Modern analytics SDK with batching, retry logic, device detection, and localStor
 
 ```bash
 # Core package (vanilla JS/TS)
-npm install @augur/analytics-core
+npm install @augur-ai/analytics-core
 
 # React package
-npm install @augur/analytics-react
+npm install @augur-ai/analytics-react
 ```
 
 ### Usage
@@ -32,6 +32,7 @@ const analytics = createAnalytics({
   feedId: "your-feed-id",
   batchSize: 10, // Optional: events per batch (default: 10)
   batchTimeout: 5000, // Optional: max wait time in ms (default: 5000)
+  sessionTimeout: 30 * 60 * 1000, // Optional: session timeout (default: 30 minutes)
   debug: true, // Optional: enable debug logging
 });
 
@@ -48,13 +49,13 @@ analytics.flushQueue();
 #### React
 
 ```typescript
-import { AugurProvider, useTrack, useDeviceInfo } from "@augur/analytics-react";
+import { AugurProvider, useTrack, useDeviceInfo } from "@augur-ai/analytics-react";
 
 function App() {
   return (
     <AugurProvider
       config={{
-        apiKey: "your-api-key",
+        writeKey: "your-write-key",
         endpoint: "https://your-backend.com/api/v1",
         feedId: "your-feed-id",
       }}
@@ -84,20 +85,19 @@ function YourComponent() {
 
 ## ✨ Features
 
-### 🎯 Automatic Batching
+### 🎯 Industry-Standard Session Management
+- **30-minute session timeout** (configurable)
+- Sessions persist across page reloads via localStorage
+- Session extends with each user activity
+- Matches Amplitude/Google Analytics behavior
 
+### 🚀 Automatic Batching & Retry Logic
 - Configurable batch size and timeout
-- Efficient network usage
-- Automatic flush on page unload
-
-### 🔄 Retry Logic
-
-- 3 retry attempts by default (configurable)
-- Exponential backoff
+- 3 retry attempts with exponential backoff
 - localStorage persistence for failed events
+- Smart beacon strategy with fetch fallback
 
 ### 📱 Device Detection
-
 - Automatic browser detection (Chrome, Firefox, Safari, Edge)
 - OS detection (Windows, macOS, Linux, Android, iOS)
 - Device type (desktop, mobile, tablet)
@@ -105,19 +105,16 @@ function YourComponent() {
 - Timezone and language
 
 ### 💾 localStorage Persistence
-
 - Failed events saved automatically
 - Sent on next page load
 - Prevents data loss
 
 ### 🚪 Proper Unload Handling
-
 - Listens to `pagehide` and `visibilitychange` events
 - Avoids breaking browser BFCache
 - Follows best practices from [Beaconing in Practice](https://nicj.net/beaconing-in-practice/)
 
 ### 📡 Smart Beacon Strategy
-
 - Uses `sendBeacon()` first (survives page unload)
 - Falls back to `fetch` with `keepalive: true`
 - Automatic fallback on failure
@@ -128,13 +125,14 @@ function YourComponent() {
 
 ```typescript
 interface AugurConfig {
-  apiKey: string; // Required: Your API key
+  writeKey: string; // Required: Your write key
   endpoint: string; // Required: Backend endpoint
   userId?: string; // Optional: User identifier
   sessionId?: string; // Optional: Custom session ID
   feedId?: string; // Optional: Feed ID for multi-feed setups
   batchSize?: number; // Optional: Events per batch (default: 10)
   batchTimeout?: number; // Optional: Max wait time in ms (default: 5000)
+  sessionTimeout?: number; // Optional: Session timeout in ms (default: 30 minutes)
   maxRetries?: number; // Optional: Max retry attempts (default: 3)
   enableLocalStorage?: boolean; // Optional: Persist failed events (default: true)
   debug?: boolean; // Optional: Enable debug logging
@@ -172,10 +170,11 @@ analytics.identify(userId: string, traits?: Record<string, any>);
 ### React Hooks
 
 ```typescript
-useAugur(); // Get analytics instance
+useAnalytics(); // Get analytics instance
 useTrack(); // Track events
 usePage(); // Track page views
 useIdentify(); // Identify users
+useAnalyticsSessionId(); // Get session ID with persistence
 useDeviceInfo(); // Get device information
 usePageTracking(); // Auto-track page views
 useComponentTracking(); // Track component lifecycle
@@ -229,5 +228,5 @@ Contributions welcome! Please read our contributing guidelines first.
 ## 📚 Resources
 
 - [Beaconing in Practice](https://nicj.net/beaconing-in-practice/) - Best practices we follow
-- [npm Package - Core](https://www.npmjs.com/package/@augur/analytics-core)
-- [npm Package - React](https://www.npmjs.com/package/@augur/analytics-react)
+- [npm Package - Core](https://www.npmjs.com/package/@augur-ai/analytics-core)
+- [npm Package - React](https://www.npmjs.com/package/@augur-ai/analytics-react)
