@@ -80,6 +80,7 @@ export class AugurAnalytics {
   private isSending: boolean = false;
   private unloadListenersAdded: boolean = false;
   private readonly SESSION_STORAGE_KEY = "augur_session";
+  private readonly SESSION_ID_KEY = "augur_session_id";
 
   constructor(config: AugurConfig) {
     this.writeKey = config.writeKey;
@@ -127,13 +128,13 @@ export class AugurAnalytics {
     if (
       !this.enableLocalStorage ||
       typeof window === "undefined" ||
-      !window.localStorage
+      !window.sessionStorage
     ) {
       return this.generateSessionId();
     }
 
     try {
-      const stored = localStorage.getItem(this.SESSION_STORAGE_KEY);
+      const stored = sessionStorage.getItem(this.SESSION_ID_KEY);
 
       if (stored) {
         const { sessionId, timestamp } = JSON.parse(stored);
@@ -172,22 +173,22 @@ export class AugurAnalytics {
   }
 
   /**
-   * Update session timestamp in localStorage
+   * Update session timestamp in sessionStorage (tab-specific)
    * Called on initialization and on each activity (track call)
    */
   private updateSessionTimestamp(sessionId?: string): void {
     if (
       !this.enableLocalStorage ||
       typeof window === "undefined" ||
-      !window.localStorage
+      !window.sessionStorage
     ) {
       return;
     }
 
     try {
       const sid = sessionId || this.sessionId;
-      localStorage.setItem(
-        this.SESSION_STORAGE_KEY,
+      sessionStorage.setItem(
+        this.SESSION_ID_KEY,
         JSON.stringify({
           sessionId: sid,
           timestamp: Date.now(),
@@ -455,27 +456,29 @@ export class AugurAnalytics {
 
     try {
       // Try Beacon API first (more efficient, survives page unload)
+      // Using text/plain to avoid CORS preflight - server should parse as JSON
       if (navigator.sendBeacon) {
-        const headers = {
-          type: "application/json",
-        };
-        const blob = new Blob([JSON.stringify(body)], headers);
+        const blob = new Blob([JSON.stringify(body)], {
+          type: "text/plain",
+        });
         const success = navigator.sendBeacon(
           `${this.endpoint}/api/v1/analytics/events`,
           blob
         );
 
         if (success) {
+          this.log("Event sent via Beacon API");
           return; // Beacon sent successfully
         }
         // Fall through to fetch if beacon fails
+        this.log("Beacon API failed, falling back to fetch");
       }
 
-      // Fallback to fetch with keepalive
+      // Fallback to fetch with keepalive and text/plain to avoid CORS preflight
       const response = await fetch(`${this.endpoint}/api/v1/analytics/events`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "text/plain",
         },
         body: JSON.stringify(body),
         keepalive: true,

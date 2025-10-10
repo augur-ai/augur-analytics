@@ -36,12 +36,35 @@ const localStorageMock = (() => {
 })();
 Object.defineProperty(window, "localStorage", { value: localStorageMock });
 
+// Mock sessionStorage
+const sessionStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => {
+      store[key] = value;
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
+    key: (index: number) => Object.keys(store)[index] || null,
+    get length() {
+      return Object.keys(store).length;
+    },
+  };
+})();
+Object.defineProperty(window, "sessionStorage", { value: sessionStorageMock });
+
 describe("AugurAnalytics", () => {
   let analytics: AugurAnalytics;
 
   beforeEach(() => {
     jest.clearAllMocks();
     localStorageMock.clear();
+    sessionStorageMock.clear();
     mockFetch.mockClear();
     mockSendBeacon.mockClear();
 
@@ -373,7 +396,7 @@ describe("AugurAnalytics", () => {
   });
 
   describe("Session Persistence", () => {
-    it("should persist session to localStorage", () => {
+    it("should persist session to sessionStorage", () => {
       const analytics1 = createAnalytics({
         writeKey: "test-key",
         endpoint: "https://api.example.com",
@@ -381,8 +404,8 @@ describe("AugurAnalytics", () => {
 
       const session1 = analytics1.getSessionId();
 
-      // Check localStorage
-      const stored = localStorageMock.getItem("augur_session");
+      // Check sessionStorage
+      const stored = sessionStorageMock.getItem("augur_session_id");
       expect(stored).toBeTruthy();
 
       const parsed = JSON.parse(stored!);
@@ -420,9 +443,11 @@ describe("AugurAnalytics", () => {
       const session1 = analytics1.getSessionId();
 
       // Manually expire session
-      const stored = JSON.parse(localStorageMock.getItem("augur_session")!);
+      const stored = JSON.parse(
+        sessionStorageMock.getItem("augur_session_id")!
+      );
       stored.timestamp = Date.now() - 200; // 200ms ago (past timeout)
-      localStorageMock.setItem("augur_session", JSON.stringify(stored));
+      sessionStorageMock.setItem("augur_session_id", JSON.stringify(stored));
 
       // Create another instance
       const analytics2 = createAnalytics({
@@ -444,7 +469,7 @@ describe("AugurAnalytics", () => {
       });
 
       const storedBefore = JSON.parse(
-        localStorageMock.getItem("augur_session")!
+        sessionStorageMock.getItem("augur_session_id")!
       );
       const timestampBefore = storedBefore.timestamp;
 
@@ -455,7 +480,7 @@ describe("AugurAnalytics", () => {
       analytics1.track("test_event");
 
       const storedAfter = JSON.parse(
-        localStorageMock.getItem("augur_session")!
+        sessionStorageMock.getItem("augur_session_id")!
       );
       const timestampAfter = storedAfter.timestamp;
 
